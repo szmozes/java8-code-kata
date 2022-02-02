@@ -16,19 +16,21 @@ import static org.junit.Assert.*;
 
 public class Exercise3Test extends ClassicOnlineStore {
 
-    @Easy @Test
+    @Easy
+    @Test
     public void howManyItemsWanted() {
         List<Customer> customerList = this.mall.getCustomerList();
 
         /**
          * Count how many items there are in {@link Customer.wantToBuy} using {@link Stream#count}
          */
-        long sum = 0L;
+        long sum = customerList.stream().flatMap(c -> c.getWantToBuy().stream()).count();
 
         assertThat(sum, is(32L));
     }
 
-    @Easy @Test
+    @Easy
+    @Test
     public void richestCustomer() {
         List<Customer> customerList = this.mall.getCustomerList();
 
@@ -36,14 +38,17 @@ public class Exercise3Test extends ClassicOnlineStore {
          * Find the richest customer's budget by using {@link Stream#max} and {@link Comparator#naturalOrder}
          * Don't use {@link Stream#sorted}
          */
-        Comparator<Integer> comparator = null;
-        Optional<Integer> richestCustomer = null;
+        Comparator<Integer> comparator = Comparator.naturalOrder();
+        Optional<Integer> richestCustomer = customerList.stream()
+                .map(Customer::getBudget)
+                .max(comparator);
 
         assertThat(comparator.getClass().getSimpleName(), is("NaturalOrderComparator"));
         assertThat(richestCustomer.get(), is(12000));
     }
 
-    @Easy @Test
+    @Easy
+    @Test
     public void youngestCustomer() {
         List<Customer> customerList = this.mall.getCustomerList();
 
@@ -51,8 +56,8 @@ public class Exercise3Test extends ClassicOnlineStore {
          * Find the youngest customer by using {@link Stream#min}
          * Don't use {@link Stream#sorted}
          */
-        Comparator<Customer> comparator = null;
-        Optional<Customer> youngestCustomer = null;
+        Comparator<Customer> comparator = Comparator.comparing(Customer::getAge);
+        Optional<Customer> youngestCustomer = customerList.stream().min(comparator);
 
         assertThat(youngestCustomer.get(), is(customerList.get(8)));
     }
