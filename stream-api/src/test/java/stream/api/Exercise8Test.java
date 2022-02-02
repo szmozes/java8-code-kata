@@ -11,6 +11,7 @@ import org.junit.Test;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.hamcrest.Matchers.hasItems;
@@ -27,8 +28,15 @@ public class Exercise8Test extends ClassicOnlineStore {
         /**
          * Create a set of item names that are in {@link Customer.wantToBuy} but not on sale in any shop.
          */
-        List<String> itemListOnSale = null;
-        Set<String> itemSetNotOnSale = null;
+        List<String> itemListOnSale = shopStream
+                .flatMap(s->s.getItemList().stream())
+                .map(Item::getName)
+                .collect(Collectors.toList());
+        Set<String> itemSetNotOnSale = customerStream
+                .flatMap(c->c.getWantToBuy().stream())
+                .map(Item::getName)
+                .filter(name->!itemListOnSale.contains(name))
+                .collect(Collectors.toSet());
 
         assertThat(itemSetNotOnSale, hasSize(3));
         assertThat(itemSetNotOnSale, hasItems("bag", "pants", "coat"));
