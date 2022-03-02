@@ -9,6 +9,8 @@ import common.test.tool.entity.Shop;
 import org.junit.Test;
 
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.function.DoubleToIntFunction;
@@ -56,17 +58,41 @@ public class Exercise8Test extends ClassicOnlineStore {
          * Items that are not on sale can be counted as 0 money cost.
          * If there is several same items with different prices, customer can choose the cheapest one.
          */
-        List<Item> onSale = shopStream
+        List<Item> onSaleItems = shopStream
                 .flatMap(s -> s.getItemList().stream())
                 .collect(Collectors.toList());
 
+        List<String> onSaleItemNames = onSaleItems.stream()
+                .map(Item::getName)
+                .collect(Collectors.toList());
+
+        Function<String, Integer> getLowestPriceByItemName = (itemName) -> {
+            List<Item> items = onSaleItems.stream()
+                    .filter(item -> item.getName().equals(itemName))
+                    .collect(Collectors.toList());
+
+            Item cheapestItem = items.stream()
+                    .min(Comparator.comparing(Item::getPrice)).orElse(null);
+
+            if (cheapestItem == null) {
+                return 0;
+            }
+            return cheapestItem.getPrice();
+
+        };
+
+        Function<Item, Integer> lowestPrice = i -> {
+            String itemName = i.getName();
+            return getLowestPriceByItemName.apply(itemName);
+        };
+
+        Predicate<Item> isItemOnSale = i -> onSaleItemNames.contains(i.getName());
+
         Function<Customer, Integer> getNeededMoney = c -> {
-            int sum = c.getWantToBuy().stream()
-                    .filter(onSale::contains)
-                    .map(i -> {
-                        Item item = onSale.stream().filter(si -> si.getName().equals(i.getName())).findFirst().orElse(null);
-                        return item.getPrice();
-                    })
+            Stream<Item> itemStream = c.getWantToBuy().stream()
+                    .filter(isItemOnSale);
+            int sum = itemStream
+                    .map(lowestPrice)
                     .mapToInt(i -> i)
                     .sum();
             return sum;
@@ -80,8 +106,9 @@ public class Exercise8Test extends ClassicOnlineStore {
                 .filter(havingEnoughMoney).collect(Collectors.toList());
 
         List<Integer> neededMoneys = goodCustomers.stream().map(getNeededMoney).collect(Collectors.toList());
-        List<String> customerNameList = customerStream
-                .filter(havingEnoughMoney)
+        List<Customer> richEnoughCustomers = customerStream
+                .filter(havingEnoughMoney).collect(Collectors.toList());
+        List<String> customerNameList = richEnoughCustomers.stream()
                 .map(Customer::getName)
                 .collect(Collectors.toList());
 
