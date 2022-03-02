@@ -5,22 +5,18 @@ import common.test.tool.dataset.ClassicOnlineStore;
 import common.test.tool.entity.Customer;
 import common.test.tool.entity.Item;
 import common.test.tool.entity.Shop;
-
 import org.junit.Test;
 
-import java.awt.*;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
-import java.util.function.DoubleToIntFunction;
-import java.util.function.Function;
-import java.util.function.Predicate;
+import java.util.function.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
+import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.hasSize;
+import static org.junit.Assert.assertThat;
 
 public class Exercise8Test extends ClassicOnlineStore {
 
@@ -62,56 +58,33 @@ public class Exercise8Test extends ClassicOnlineStore {
                 .flatMap(s -> s.getItemList().stream())
                 .collect(Collectors.toList());
 
-        List<String> onSaleItemNames = onSaleItems.stream()
-                .map(Item::getName)
-                .collect(Collectors.toList());
-
-        Function<String, Integer> getLowestPriceByItemName = (itemName) -> {
-            List<Item> items = onSaleItems.stream()
-                    .filter(item -> item.getName().equals(itemName))
+        Function<Item, Integer> getCheapestItemPriceWithSameName = (item) -> {
+            List<Item> itemsWithSameName = onSaleItems.stream()
+                    .filter(i -> i.getName().equals(item.getName()))
                     .collect(Collectors.toList());
 
-            Item cheapestItem = items.stream()
-                    .min(Comparator.comparing(Item::getPrice)).orElse(null);
+            Item cheapestItem = itemsWithSameName.stream()
+                    .min(Comparator.comparing(Item::getPrice))
+                    .orElse(null);
 
             if (cheapestItem == null) {
                 return 0;
             }
             return cheapestItem.getPrice();
-
-        };
-
-        Function<Item, Integer> lowestPrice = i -> {
-            String itemName = i.getName();
-            return getLowestPriceByItemName.apply(itemName);
-        };
-
-        Predicate<Item> isItemOnSale = i -> onSaleItemNames.contains(i.getName());
-
-        Function<Customer, Integer> getNeededMoney = c -> {
-            Stream<Item> itemStream = c.getWantToBuy().stream()
-                    .filter(isItemOnSale);
-            int sum = itemStream
-                    .map(lowestPrice)
-                    .mapToInt(i -> i)
-                    .sum();
-            return sum;
         };
 
         Predicate<Customer> havingEnoughMoney = c -> {
-            Integer neededMoney = getNeededMoney.apply(c);
+            Integer neededMoney = c.getWantToBuy().stream()
+                    .map(getCheapestItemPriceWithSameName)
+                    .mapToInt(i -> i)
+                    .sum();
             return c.getBudget() >= neededMoney;
         };
-        List<Customer> goodCustomers = this.mall.getCustomerList().stream()
-                .filter(havingEnoughMoney).collect(Collectors.toList());
 
-        List<Integer> neededMoneys = goodCustomers.stream().map(getNeededMoney).collect(Collectors.toList());
-        List<Customer> richEnoughCustomers = customerStream
-                .filter(havingEnoughMoney).collect(Collectors.toList());
-        List<String> customerNameList = richEnoughCustomers.stream()
+        List<String> customerNameList = customerStream
+                .filter(havingEnoughMoney)
                 .map(Customer::getName)
                 .collect(Collectors.toList());
-
 
         assertThat(customerNameList, hasSize(7));
         assertThat(customerNameList, hasItems("Joe", "Patrick", "Chris", "Kathy", "Alice", "Andrew", "Amy"));
