@@ -5,15 +5,9 @@ import common.test.tool.annotation.Easy;
 import common.test.tool.dataset.ClassicOnlineStore;
 import common.test.tool.entity.Customer;
 import common.test.tool.util.CollectorImpl;
-
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
@@ -22,11 +16,12 @@ import java.util.stream.Collector;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
 
 public class Exercise9Test extends ClassicOnlineStore {
 
-    @Easy @Test
+    @Easy
+    @Test
     public void simplestStringJoin() {
         List<Customer> customerList = this.mall.getCustomerList();
 
@@ -34,18 +29,32 @@ public class Exercise9Test extends ClassicOnlineStore {
          * Implement a {@link Collector} which can create a String with comma separated names shown in the assertion.
          * The collector will be used by serial stream.
          */
-        Supplier<Object> supplier = null;
-        BiConsumer<Object, String> accumulator = null;
-        BinaryOperator<Object> combiner = null;
-        Function<Object, String> finisher = null;
+        Supplier<ArrayList<String>> supplier = ArrayList::new;
+
+        BiConsumer<ArrayList<String>, String> accumulator = ArrayList::add;
+
+        BinaryOperator<ArrayList<String>> combiner = (strings1, strings2) -> {
+            strings1.addAll(strings2);
+            return strings1;
+        };
+
+        Function<ArrayList<String>, String> finisher = (o) -> {
+            StringBuilder builder = new StringBuilder();
+            for (String s : o) {
+                builder.append(s + ",");
+            }
+            StringBuilder stringBuilder = builder.deleteCharAt(builder.length() - 1);
+            return stringBuilder.toString();
+        };
 
         Collector<String, ?, String> toCsv =
-            new CollectorImpl<>(supplier, accumulator, combiner, finisher, Collections.emptySet());
+                new CollectorImpl<>(supplier, accumulator, combiner, finisher, Collections.emptySet());
         String nameAsCsv = customerList.stream().map(Customer::getName).collect(toCsv);
         assertThat(nameAsCsv, is("Joe,Steven,Patrick,Diana,Chris,Kathy,Alice,Andrew,Martin,Amy"));
     }
 
-    @Difficult @Test
+    @Difficult
+    @Test
     public void mapKeyedByItems() {
         List<Customer> customerList = this.mall.getCustomerList();
 
@@ -60,9 +69,9 @@ public class Exercise9Test extends ClassicOnlineStore {
         Function<Object, Map<String, Set<String>>> finisher = null;
 
         Collector<Customer, ?, Map<String, Set<String>>> toItemAsKey =
-            new CollectorImpl<>(supplier, accumulator, combiner, finisher, EnumSet.of(
-                Collector.Characteristics.CONCURRENT,
-                Collector.Characteristics.IDENTITY_FINISH));
+                new CollectorImpl<>(supplier, accumulator, combiner, finisher, EnumSet.of(
+                        Collector.Characteristics.CONCURRENT,
+                        Collector.Characteristics.IDENTITY_FINISH));
         Map<String, Set<String>> itemMap = customerList.stream().parallel().collect(toItemAsKey);
         assertThat(itemMap.get("plane"), containsInAnyOrder("Chris"));
         assertThat(itemMap.get("onion"), containsInAnyOrder("Patrick", "Amy"));
@@ -74,7 +83,8 @@ public class Exercise9Test extends ClassicOnlineStore {
         assertThat(itemMap.get("desk"), containsInAnyOrder("Alice"));
     }
 
-    @Difficult @Test
+    @Difficult
+    @Test
     public void bitList2BitString() {
         String bitList = "22-24,9,42-44,11,4,46,14-17,5,2,38-40,33,50,48";
 
