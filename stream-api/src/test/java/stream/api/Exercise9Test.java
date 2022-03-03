@@ -29,22 +29,16 @@ public class Exercise9Test extends ClassicOnlineStore {
          * Implement a {@link Collector} which can create a String with comma separated names shown in the assertion.
          * The collector will be used by serial stream.
          */
-        Supplier<ArrayList<String>> supplier = ArrayList::new;
+        Supplier<StringBuilder> supplier = StringBuilder::new;
 
-        BiConsumer<ArrayList<String>, String> accumulator = ArrayList::add;
+        BiConsumer<StringBuilder, String> accumulator = (stringBuilder, str) ->
+                stringBuilder.append(str).append(",");
 
-        BinaryOperator<ArrayList<String>> combiner = (strings1, strings2) -> {
-            strings1.addAll(strings2);
-            return strings1;
-        };
+        BinaryOperator<StringBuilder> combiner = StringBuilder::append;
 
-        Function<ArrayList<String>, String> finisher = (o) -> {
-            StringBuilder builder = new StringBuilder();
-            for (String s : o) {
-                builder.append(s + ",");
-            }
-            StringBuilder stringBuilder = builder.deleteCharAt(builder.length() - 1);
-            return stringBuilder.toString();
+        Function<StringBuilder, String> finisher = (builder) -> {
+            builder.deleteCharAt(builder.length() - 1);
+            return builder.toString();
         };
 
         Collector<String, ?, String> toCsv =
