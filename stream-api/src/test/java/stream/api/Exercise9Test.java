@@ -109,11 +109,33 @@ public class Exercise9Test extends ClassicOnlineStore {
          * "7,1-3,5" will be "1110101"
          */
 
+        Supplier<List<Integer>> supplier = ArrayList::new;
 
-        Supplier<List<Integer>> supplier = null;
-        BiConsumer<List<Integer>, String> accumulator = null;
+        BiConsumer<List<Integer>, String> accumulator = (list, bitListElement) -> {
+            if (bitListElement.contains("-")) {
+                String[] limits = bitListElement.split("-");
+                int iFrom = Integer.parseInt(limits[0]);
+                int iTo = Integer.parseInt(limits[1]);
+                list.addAll(Collections.nCopies(Math.max(0, iTo - list.size()), 0));
+                for (int i = iFrom; i <= iTo; i++) {
+                    list.set(i - 1, 1);
+                }
+            } else {
+                int newInt = Integer.parseInt(bitListElement);
+                list.addAll(Collections.nCopies(Math.max(0, newInt - list.size()), 0));
+                list.set(newInt - 1, 1);
+            }
+        };
+
         BinaryOperator<List<Integer>> combiner = null;
-        Function<List<Integer>, String> finisher = null;
+
+        Function<List<Integer>, String> finisher = (list) -> {
+            StringBuilder builder = new StringBuilder();
+            for (Integer i : list) {
+                builder.append(i);
+            }
+            return builder.toString();
+        };
 
         Collector<String, ?, String> toBitString = new CollectorImpl<>(supplier, accumulator, combiner, finisher, Collections.emptySet());
 
