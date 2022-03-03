@@ -15,8 +15,6 @@ import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
@@ -64,23 +62,16 @@ public class Exercise9Test extends ClassicOnlineStore {
         Supplier<Map<String, Set<String>>> supplier = ConcurrentHashMap::new;
 
         BiConsumer<Map<String, Set<String>>, Customer> accumulator = (map, customer) -> {
-            List<Item> wantToBuy = customer.getWantToBuy();
-            for (Item i : wantToBuy) {
-                Set<String> customers = map.get(i.getName());
-                if (customers == null) {
-                    customers = new HashSet<>();
-                }
-                customers.add(customer.getName());
-                map.put(i.getName(), customers);
+            for (Item item : customer.getWantToBuy()) {
+                Set<String> itemCustomers = map.getOrDefault(item.getName(), new HashSet<>());
+                itemCustomers.add(customer.getName());
+                map.put(item.getName(), itemCustomers);
             }
         };
 
         BinaryOperator<Map<String, Set<String>>> combiner = (map1, map2) -> {
             map2.forEach((map2Item, map2Customers) -> {
-                Set<String> map1Customers = map1.get(map2Item);
-                if (map1Customers == null) {
-                    map1Customers = new HashSet<>();
-                }
+                Set<String> map1Customers = map1.getOrDefault(map2Item, new HashSet<>());
                 map2Customers.addAll(map1Customers);
                 map1.put(map2Item, map2Customers);
             });
