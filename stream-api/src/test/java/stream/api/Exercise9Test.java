@@ -61,26 +61,23 @@ public class Exercise9Test extends ClassicOnlineStore {
          * values as {@link Set} of customers who are wanting to buy that item.
          * The collector will be used by parallel stream.
          */
-        Supplier<Map<Item, Set<Customer>>> supplier = () -> {
-            ConcurrentHashMap concurrentHashMap = new ConcurrentHashMap();
-            return concurrentHashMap;
-        };
+        Supplier<Map<String, Set<String>>> supplier = ConcurrentHashMap::new;
 
-        BiConsumer<Map<Item, Set<Customer>>, Customer> accumulator = (map, customer) -> {
+        BiConsumer<Map<String, Set<String>>, Customer> accumulator = (map, customer) -> {
             List<Item> wantToBuy = customer.getWantToBuy();
             for (Item i : wantToBuy) {
-                Set<Customer> customers = map.get(i);
+                Set<String> customers = map.get(i.getName());
                 if (customers == null) {
                     customers = new HashSet<>();
                 }
-                customers.add(customer);
-                map.put(i, customers);
+                customers.add(customer.getName());
+                map.put(i.getName(), customers);
             }
         };
 
-        BinaryOperator<Map<Item, Set<Customer>>> combiner = (map1, map2) -> {
+        BinaryOperator<Map<String, Set<String>>> combiner = (map1, map2) -> {
             map2.forEach((map2Item, map2Customers) -> {
-                Set<Customer> map1Customers = map1.get(map2Item);
+                Set<String> map1Customers = map1.get(map2Item);
                 if (map1Customers == null) {
                     map1Customers = new HashSet<>();
                 }
@@ -90,16 +87,7 @@ public class Exercise9Test extends ClassicOnlineStore {
             return map1;
         };
 
-        Function<Map<Item, Set<Customer>>, Map<String, Set<String>>> finisher = (map) -> {
-            Map<String, Set<String>> map2 = new ConcurrentHashMap<>();
-            map.forEach((item, customers) -> {
-                Set<String> customerNames = customers.stream()
-                        .map(Customer::getName)
-                        .collect(Collectors.toSet());
-                map2.put(item.getName(), customerNames);
-            });
-            return map2;
-        };
+        Function<Map<String, Set<String>>, Map<String, Set<String>>> finisher = null;
 
         Collector<Customer, ?, Map<String, Set<String>>> toItemAsKey =
                 new CollectorImpl<>(supplier, accumulator, combiner, finisher, EnumSet.of(
