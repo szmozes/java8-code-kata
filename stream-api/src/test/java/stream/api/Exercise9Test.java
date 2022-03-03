@@ -4,15 +4,19 @@ import common.test.tool.annotation.Difficult;
 import common.test.tool.annotation.Easy;
 import common.test.tool.dataset.ClassicOnlineStore;
 import common.test.tool.entity.Customer;
+import common.test.tool.entity.Item;
 import common.test.tool.util.CollectorImpl;
 import org.junit.Test;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
@@ -34,7 +38,7 @@ public class Exercise9Test extends ClassicOnlineStore {
         BiConsumer<StringBuilder, String> accumulator = (stringBuilder, str) ->
                 stringBuilder.append(str).append(",");
 
-        BinaryOperator<StringBuilder> combiner = StringBuilder::append;
+        BinaryOperator<StringBuilder> combiner = null;
 
         Function<StringBuilder, String> finisher = (builder) -> {
             builder.deleteCharAt(builder.length() - 1);
@@ -57,10 +61,45 @@ public class Exercise9Test extends ClassicOnlineStore {
          * values as {@link Set} of customers who are wanting to buy that item.
          * The collector will be used by parallel stream.
          */
-        Supplier<Object> supplier = null;
-        BiConsumer<Object, Customer> accumulator = null;
-        BinaryOperator<Object> combiner = null;
-        Function<Object, Map<String, Set<String>>> finisher = null;
+        Supplier<Map<Item, Set<Customer>>> supplier = () -> {
+            ConcurrentHashMap concurrentHashMap = new ConcurrentHashMap();
+            return concurrentHashMap;
+        };
+
+        BiConsumer<Map<Item, Set<Customer>>, Customer> accumulator = (map, customer) -> {
+            List<Item> wantToBuy = customer.getWantToBuy();
+            for (Item i : wantToBuy) {
+                Set<Customer> customers = map.get(i);
+                if (customers == null) {
+                    customers = new HashSet<>();
+                }
+                customers.add(customer);
+                map.put(i, customers);
+            }
+        };
+
+        BinaryOperator<Map<Item, Set<Customer>>> combiner = (map1, map2) -> {
+            map2.forEach((map2Item, map2Customers) -> {
+                Set<Customer> map1Customers = map1.get(map2Item);
+                if (map1Customers == null) {
+                    map1Customers = new HashSet<>();
+                }
+                map2Customers.addAll(map1Customers);
+                map1.put(map2Item, map2Customers);
+            });
+            return map1;
+        };
+
+        Function<Map<Item, Set<Customer>>, Map<String, Set<String>>> finisher = (map) -> {
+            Map<String, Set<String>> map2 = new ConcurrentHashMap<>();
+            map.forEach((item, customers) -> {
+                Set<String> customerNames = customers.stream()
+                        .map(Customer::getName)
+                        .collect(Collectors.toSet());
+                map2.put(item.getName(), customerNames);
+            });
+            return map2;
+        };
 
         Collector<Customer, ?, Map<String, Set<String>>> toItemAsKey =
                 new CollectorImpl<>(supplier, accumulator, combiner, finisher, EnumSet.of(
