@@ -108,7 +108,14 @@ public class Exercise9Test extends ClassicOnlineStore {
          * "1-3" will be "111"
          * "7,1-3,5" will be "1110101"
          */
-        Collector<String, ?, String> toBitString = null;
+
+
+        Supplier<List<Integer>> supplier = null;
+        BiConsumer<List<Integer>, String> accumulator = null;
+        BinaryOperator<List<Integer>> combiner = null;
+        Function<List<Integer>, String> finisher = null;
+
+        Collector<String, ?, String> toBitString = new CollectorImpl<>(supplier, accumulator, combiner, finisher, Collections.emptySet());
 
         String bitString = Arrays.stream(bitList.split(",")).collect(toBitString);
         assertThat(bitString, is("01011000101001111000011100000000100001110111010101")
